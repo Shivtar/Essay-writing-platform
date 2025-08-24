@@ -1,7 +1,5 @@
-# NEW FILE
 Flask
 Flask-SQLAlchemy
-gramformer
-torch
+pyspellchecker
 xhtml2pdf
 gunicorn
