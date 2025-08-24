@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, jsonify, send_file
-# NEW IMPORTS for Gramformer
-from gramformer import Gramformer
-import torch
+# NEW IMPORTS for pyspellchecker
+from spellchecker import SpellChecker
+import re
+from collections import Counter
 from datetime import datetime, timedelta
 from io import BytesIO
 from xhtml2pdf import pisa
-from collections import Counter
 import logging
 
 # Import your database models
@@ -24,36 +24,42 @@ with app.app_context():
     db.create_all()
 
 # --- TOOL INITIALIZATION (MODIFIED) ---
-def instantiate_gramformer():
-    # This function loads the model. It's slow and memory-intensive.
-    logging.info("Instantiating Gramformer model...")
-    gf = Gramformer(models=1, use_gpu=False) # models=1 is for correction
-    logging.info("Gramformer model loaded successfully.")
-    return gf
-
-# Initialize the model once when the app starts
-gf = instantiate_gramformer()
+# Initialize the spell checker once. It's very lightweight.
+spell = SpellChecker()
+logging.info("pyspellchecker initialized.")
 
 # --- ROUTES ---
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    """
+    Handles the main page. Now finds and lists spelling mistakes.
+    """
     if request.method == 'POST':
         original_text = request.form.get('text')
         if not original_text:
             return jsonify({'error': 'No text provided'}), 400
 
-        # Perform the grammar check using Gramformer
-        corrected_sentences = gf.correct(original_text, max_candidates=1)
-        # Gramformer returns a set, so we get the first (and only) result
-        corrected_text = list(corrected_sentences)[0]
+        # Find misspelled words
+        # Use regex to split text into words, removing punctuation
+        words = re.findall(r'\b\w+\b', original_text.lower())
+        misspelled_words = list(spell.unknown(words))
+        
+        # Create a list of corrections to display to the user
+        corrections = {word: spell.correction(word) for word in misspelled_words}
 
-        return render_template('index.html', corrected_text=corrected_text, original_text=original_text)
-    
-    return render_template('index.html')
+        return render_template('index.html', 
+                               original_text=original_text, 
+                               errors_found=True, 
+                               corrections=corrections)
+
+    return render_template('index.html', errors_found=False)
 
 @app.route('/save', methods=['POST'])
 def save_essay():
+    """
+    Saves the essay. Performs a simple word-by-word correction for the database.
+    """
     original_text = request.form.get('text')
     word_count = request.form.get('wordCount', 0, type=int)
     paragraph_count = request.form.get('paragraphCount', 0, type=int)
@@ -62,10 +68,12 @@ def save_essay():
     if not original_text:
         return jsonify({'error': 'No text provided'}), 400
 
-    # Perform correction before saving
-    corrected_sentences = gf.correct(original_text, max_candidates=1)
-    corrected_text = list(corrected_sentences)[0]
-
+    # Perform a simple word-by-word correction.
+    # Note: This is a basic correction and might not be grammatically perfect.
+    words = re.findall(r'\b\w+\b', original_text)
+    corrected_words = [spell.correction(word) if word.lower() in spell.unknown(words) else word for word in words]
+    corrected_text = " ".join(corrected_words)
+    
     try:
         new_essay = Essay(
             original_text=original_text, 
@@ -82,9 +90,24 @@ def save_essay():
         logging.error(f"Error saving to database: {e}")
         return jsonify({'error': 'Could not save essay to the database.'}), 500
 
-# --- ANALYSIS ROUTE (REMOVED) ---
-# The /analyze route is removed as Gramformer doesn't provide a list of mistakes.
-# You should also remove the link/button for this from your HTML templates.
+# --- ANALYSIS ROUTE (RESTORED) ---
+@app.route('/analyze/<int:essay_id>')
+def analyze_essay(essay_id):
+    """
+    Analyzes an essay for common spelling mistakes using pyspellchecker.
+    """
+    essay = Essay.query.get_or_404(essay_id)
+    
+    # Find misspelled words and count their frequency
+    words = re.findall(r'\b\w+\b', essay.original_text.lower())
+    misspelled_words = spell.unknown(words)
+    error_counts = Counter(misspelled_words)
+    
+    # Sort by most common errors
+    most_common_errors = error_counts.most_common()
+
+    return render_template('analysis.html', essay=essay, errors=most_common_errors)
+
 
 @app.route('/history')
 def history():
@@ -108,7 +131,7 @@ def history():
 @app.route('/download/<int:essay_id>')
 def download_pdf(essay_id):
     # This route remains the same
-    essay = Essay.query.get_or_4_04(essay_id)
+    essay = Essay.query.get_or_404(essay_id)
     html_content = f"""
     <!DOCTYPE html><html><head><title>Corrected Essay</title>
     <style>body {{ font-family: sans-serif; }}</style></head>
