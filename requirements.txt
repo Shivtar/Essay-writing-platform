@@ -1,5 +1,7 @@
+# NEW FILE
 Flask
 Flask-SQLAlchemy
-language-tool-python
+gramformer
+torch
 xhtml2pdf
 gunicorn
