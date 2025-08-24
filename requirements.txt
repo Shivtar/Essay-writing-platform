@@ -2,3 +2,4 @@ Flask
 Flask-SQLAlchemy
 language-tool-python
 xhtml2pdf
+gunicorn
