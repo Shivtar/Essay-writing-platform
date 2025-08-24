@@ -4,11 +4,19 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from xhtml2pdf import pisa
 from collections import Counter
+import os
+
 # Import your database models
 from models import db, Essay 
 
 # --- APP CONFIGURATION ---
 app = Flask(__name__)
+essay_api_key = os.getenv("essayvv")
+if not essay_api_key:
+    raise ValueError("Missing essayvv environment variable")
+import logging
+logging.basicConfig(level=logging.INFO)
+logging.info("Essay platform started")
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///essays.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -138,5 +146,9 @@ def download_pdf(essay_id):
     pdf_buffer.seek(0)
     return send_file(pdf_buffer, download_name=f"essay_{essay_id}.pdf", as_attachment=True)
 
+@app.route('/health')
+def health():
+    return "OK", 200
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
