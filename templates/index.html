@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Essay Writing Buddy</title>
+    <!-- Bootstrap for layout -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Google Fonts for an earthy, classic feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Earthy Theme Color Palette */
+            --bg-light: #FBF8F3;      /* A very light, warm beige */
+            --bg-dark: #2C2A28;       /* A deep, dark brown */
+            --text-light: #3D3A37;    /* A softer, dark brown for text */
+            --text-dark: #EAE3D9;     /* A soft beige for dark mode text */
+            --accent: #8A6E59;       /* A muted, earthy brown for buttons */
+            --accent-hover: #735A48;  /* A darker shade for hover effects */
+            --container-light: #FFFFFF;
+            --container-dark: #3D3A37;
+            --border-light: #EAE3D9;
+            --border-dark: #524E4A;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-light);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .dark-mode {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        h1, h4, h5 {
+            font-family: 'Lora', serif;
+            font-weight: 700;
+        }
+
+        /* WIDER CONTAINER */
+        .container {
+            max-width: 950px; /* Increased width */
+            margin: 50px auto;
+            padding: 2.5rem;
+            border-radius: 12px;
+            background-color: var(--container-light);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .dark-mode .container {
+            background-color: var(--container-dark);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        /* HEADER SECTION */
+        .header-controls {
+            max-width: 950px;
+            margin: 20px auto 0;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-buttons a, .header-buttons button {
+            margin-left: 10px;
+        }
+
+        .clock {
+            font-size: 1.1rem;
+            font-family: 'Lora', serif;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* TEXTAREA & COUNTERS */
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+            resize: vertical;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            background-color: var(--bg-light);
+            color: var(--text-light);
+        }
+        
+        .dark-mode textarea {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+            border-color: var(--border-dark);
+        }
+
+        .stats p {
+            margin-bottom: 0.5rem;
+            color: #777;
+        }
+        .dark-mode .stats p {
+            color: #aaa;
+        }
+
+        /* BUTTONS */
+        .btn {
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: bold;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-accent {
+            background-color: var(--accent);
+            color: #fff;
+            border: none;
+        }
+        .btn-accent:hover {
+            background-color: var(--accent-hover);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        /* CORRECTED TEXT BOX */
+        #correctedText {
+            white-space: pre-wrap;
+            background-color: #F8F5F0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid var(--border-light);
+            min-height: 100px;
+        }
+
+        .dark-mode #correctedText {
+            background-color: #4A4542;
+            border-color: var(--border-dark);
+        }
+        
+        /* FOOTER */
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #aaa;
+        }
+        .dark-mode footer {
+            color: #777;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="header-controls">
+        <div id="clock" class="clock"></div>
+        <div class="header-buttons">
+            <!-- HISTORY BUTTON MOVED HERE -->
+            <a href="/history" class="btn btn-sm btn-outline-secondary">📚 View History</a>
+            <button id="darkModeToggle" class="btn btn-sm btn-outline-secondary">🌗 Dark Mode</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 class="text-center mb-4">🌿 Essay Writing Buddy</h1>
+
+        <div class="stopwatch-controls text-center mb-4">
+            <div id="stopwatch-display" class="h2" style="font-family: 'Lora', serif;">00:00:00</div>
+            <button id="start-stopwatch-btn" class="btn btn-sm btn-success">Start</button>
+            <button id="stop-stopwatch-btn" class="btn btn-sm btn-danger" style="display:none;">Stop</button>
+            <button id="reset-stopwatch-btn" class="btn btn-sm btn-warning">Reset</button>
+        </div>
+
+        <form id="correction-form" method="POST">
+            <textarea id="essay" name="text" rows="12" placeholder="Start your masterpiece...">{{ original_text or '' }}</textarea>
+
+            <div class="mt-3 stats d-flex justify-content-around">
+                <p>📝 Words: <span id="wordCount">0</span></p>
+                <p>🏴 Paragraphs: <span id="paragraphCount">0</span></p>
+                <p>🔙 Backspaces: <span id="backspaceCount">0</span></p>
+            </div>
+
+            <div class="d-flex justify-content-center mt-3">
+                <button id="submit-btn" type="submit" class="btn btn-accent mx-2">Check & Correct</button>
+                <button id="save-btn" type="button" class="btn btn-outline-info mx-2">Save Manually</button>
+            </div>
+        </form>
+
+        <h5 class="mt-5">✅ Corrected Text:</h5>
+        <div id="correctedText">{% if corrected_text %}{{ corrected_text }}{% endif %}</div>
+        
+        <div id="error-message" class="text-danger text-center mt-3"></div>
+    </div>
+
+    <!-- DEVELOPER CREDIT FOOTER -->
+    <footer>
+        <p>Developed by SHIVTAR KUMAR</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essay Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts for an earthy, classic feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;700&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
+    
+    <!-- Using the same earthy style -->
+    <style>
+        :root {
+            --bg-light: #FBF8F3;
+            --text-light: #3D3A37;
+            --accent: #8A6E59;
+            --container-light: #FFFFFF;
+            --border-light: #EAE3D9;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-light);
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        h1, h3 {
+            font-family: 'Lora', serif;
+            font-weight: 700;
+        }
+        .table {
+            background-color: var(--container-light);
+            border-radius: 8px;
+            overflow: hidden; /* Ensures the border radius is applied to the table */
+        }
+        .card {
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            background-color: var(--container-light);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4 text-center">🔍 Mistake Analysis</h1>
+        
+        <div class="card mb-5">
+            <div class="card-body">
+                <h5 class="card-title" style="font-family: 'Lora', serif;">Original Essay Text</h5>
+                <p class="card-text text-muted" style="max-height: 150px; overflow-y: auto;">
+                    {{ essay.original_text }}
+                </p>
+            </div>
+        </div>
+
+        <h3 class="mt-5">Your Most Common Spelling Mistakes</h3>
+        
+        {% if errors %}
+            <table class="table table-striped table-hover mt-3">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Incorrect Word</th>
+                        <th scope="col">Times Used</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for word, count in errors %}
+                    <tr>
+                        <th scope="row">{{ loop.index }}</th>
+                        <td><code class="text-danger">{{ word }}</code></td>
+                        <td>{{ count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="alert alert-success mt-3" role="alert">
+              <strong>Congratulations!</strong> No spelling errors were found in this essay.
+            </div>
+        {% endif %}
+
+        <div class="text-center">
+             <!-- FIXED: Changed href to use url_for for proper routing -->
+             <a href="{{ url_for('history') }}" class="btn btn-secondary mt-4">⬅ Back to History</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!-- templates/history.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essay History</title>
+    <!-- Using Bootstrap for layout, but our custom styles will override it -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom styles to match your index.html -->
+    <style>
+        :root {
+            --bg-light: #f4f1ee;
+            --bg-dark: #2e2b28;
+            --text-light: #2e2b28;
+            --text-dark: #f4f1ee;
+            --accent: #a67c52;
+            --container-light: #ffffff;
+            --container-dark: #3c3835;
+            --border-light: #dee2e6;
+            --border-dark: #5a5653;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-light);
+            transition: background-color 0.3s, color 0.3s;
+            font-family: sans-serif;
+        }
+
+        .dark-mode {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 2rem;
+            border-radius: 12px;
+            background-color: var(--container-light);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .dark-mode .container {
+            background-color: var(--container-dark);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .card {
+            background-color: transparent;
+            border: 1px solid var(--border-light);
+            transition: border-color 0.3s;
+        }
+        
+        .dark-mode .card {
+            border-color: var(--border-dark);
+        }
+
+        .card-header {
+            background-color: rgba(0,0,0,0.03);
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .dark-mode .card-header {
+             background-color: rgba(255,255,255,0.05);
+             border-bottom: 1px solid var(--border-dark);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>🕒 Essay History</h2>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">⬅ Back to Editor</a>
+        </div>
+
+        <form method="get" class="mb-4">
+            <label for="time-filter" class="form-label">Show history from:</label>
+            <select name="minutes" id="time-filter" onchange="this.form.submit()" class="form-select" style="max-width: 250px;">
+                <option value="30" {% if selected_minutes == 30 %}selected{% endif %}>Last 30 minutes</option>
+                <option value="60" {% if selected_minutes == 60 %}selected{% endif %}>Last 60 minutes</option>
+                <option value="-1" {% if selected_minutes == -1 %}selected{% endif %}>Older than 60 minutes</option>
+            </select>
+        </form>
+
+        {% if not essays %}
+            <div class="alert alert-info" role="alert">
+                No essays found in the selected time frame.
+            </div>
+        {% else %}
+            <!-- **FIXED**: The for loop now correctly wraps each card -->
+            {% for essay in essays %}
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <small class="text-muted">🕓 {{ essay.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</small>
+                    <div>
+                        <a href="{{ url_for('analyze_essay', essay_id=essay.id) }}" class="btn btn-sm btn-outline-info">Analyze Mistakes</a>
+                        <a href="{{ url_for('download_pdf', essay_id=essay.id) }}" class="btn btn-sm btn-outline-primary">Download PDF</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p><strong>Original:</strong> {{ essay.original_text | truncate(150, true) }}</p>
+                    <hr>
+                    <p><strong>Corrected:</strong> {{ essay.corrected_text | truncate(150, true) }}</p>
+                </div>
+                <div class="card-footer text-muted d-flex justify-content-around">
+                    <small>Words: {{ essay.word_count or 'N/A' }}</small>
+                    <small>Paragraphs: {{ essay.paragraph_count or 'N/A' }}</small>
+                    <small>Backspaces: {{ essay.backspace_count or 'N/A' }}</small>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</body>
+</html>
