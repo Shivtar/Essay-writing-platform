@@ -5,18 +5,18 @@ from io import BytesIO
 from xhtml2pdf import pisa
 from collections import Counter
 import os
+import logging
 
 # Import your database models
 from models import db, Essay 
 
 # --- APP CONFIGURATION ---
 app = Flask(__name__)
-essay_api_key = os.getenv("essayvv")
-if not essay_api_key:
-    raise ValueError("Missing essayvv environment variable")
-import logging
+# Set up basic logging
 logging.basicConfig(level=logging.INFO)
-logging.info("Essay platform started")
+logging.info("Essay platform starting up...")
+
+# Configure the database URI. It will look for the essays.db file in the instance folder.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///essays.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -27,29 +27,24 @@ with app.app_context():
     db.create_all()
 
 # --- TOOL INITIALIZATION ---
-def get_tool(locale='en-US'):
-    return language_tool_python.LanguageToolPublicAPI(locale)
-
-def correct_text(text, locale='en-US'):
-    tool = get_tool(locale)
-    matches = tool.check(text)
-    corrected = language_tool_python.utils.correct(text, matches)
-    return corrected, matches
+# This will use the local Java server provided by your Docker container.
+# It's the standard way to run it without external APIs.
+tool = language_tool_python.LanguageTool('en-US')
+logging.info("LanguageTool initialized successfully.")
 
 # --- ROUTES ---
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     """
-    Handles the main page for essay submission.
-    This route NO LONGER saves to the database. It only corrects text.
+    Handles the main page for essay submission and correction.
     """
     if request.method == 'POST':
         original_text = request.form.get('text')
         if not original_text:
             return jsonify({'error': 'No text provided'}), 400
 
-        # Perform the grammar check
+        # Perform the grammar check using the local tool
         matches = tool.check(original_text)
         corrected_text = language_tool_python.utils.correct(original_text, matches)
 
@@ -63,7 +58,6 @@ def index():
 def save_essay():
     """
     Corrects, then saves the essay and its stats to the database.
-    This is triggered by the 'Save Manually' button.
     """
     original_text = request.form.get('text')
     # Get stats from the form
@@ -91,7 +85,7 @@ def save_essay():
         return jsonify({'message': 'Essay saved successfully'}), 200
     except Exception as e:
         db.session.rollback()
-        print(f"Error saving to database: {e}")
+        logging.error(f"Error saving to database: {e}")
         return jsonify({'error': 'Could not save essay to the database.'}), 500
 
 # --- ANALYSIS ROUTE ---
@@ -105,10 +99,9 @@ def analyze_essay(essay_id):
     
     # Filter for spelling mistakes and count them
     spelling_errors = [
-        # *** FIXED: Changed match.error_length to match.errorLength ***
         match.context[match.offset:match.offset + match.errorLength]
         for match in matches
-        if match.ruleId == 'MORFOLOGIK_RULE_EN_US' or 'SPELLING' in match.ruleId
+        if 'SPELLING' in match.ruleId or 'MORFOLOGIK' in match.ruleId
     ]
     
     error_counts = Counter(spelling_errors)
@@ -127,7 +120,7 @@ def history():
     except ValueError:
         minutes = 60
 
-    if minutes == -1:
+    if minutes == -1: # A value to signify 'older than an hour'
         cutoff_time = datetime.utcnow() - timedelta(minutes=60)
         essays = Essay.query.filter(Essay.timestamp < cutoff_time).order_by(Essay.timestamp.desc()).all()
     else:
@@ -155,7 +148,10 @@ def download_pdf(essay_id):
 
 @app.route('/health')
 def health():
+    """ Health check endpoint for Render. """
     return "OK", 200
 
 if __name__ == '__main__':
-    app.run()
+    # This part is for local development, not for production
+    # Gunicorn will be used in production as defined in the Dockerfile
+    app.run(debug=True)
