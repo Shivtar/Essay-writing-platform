@@ -27,7 +27,14 @@ with app.app_context():
     db.create_all()
 
 # --- TOOL INITIALIZATION ---
-tool = language_tool_python.LanguageTool('en-US')
+def get_tool(locale='en-US'):
+    return language_tool_python.LanguageToolPublicAPI(locale)
+
+def correct_text(text, locale='en-US'):
+    tool = get_tool(locale)
+    matches = tool.check(text)
+    corrected = language_tool_python.utils.correct(text, matches)
+    return corrected, matches
 
 # --- ROUTES ---
 
