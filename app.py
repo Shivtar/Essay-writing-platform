@@ -33,27 +33,44 @@ logging.info("pyspellchecker initialized.")
 @app.route('/', methods=['GET', 'POST'])
 def index():
     """
-    Handles the main page. Now finds and lists spelling mistakes.
+    Handles the main page. Now finds misspelled words and creates a 
+    single corrected text string to send to the template.
     """
     if request.method == 'POST':
         original_text = request.form.get('text')
         if not original_text:
-            return jsonify({'error': 'No text provided'}), 400
+            # For a POST request, returning JSON might be better if called via JS,
+            # but for a simple form, rendering the template is fine.
+            return render_template('index.html', original_text="", corrected_text="Error: No text provided.")
 
-        # Find misspelled words
-        # Use regex to split text into words, removing punctuation
-        words = re.findall(r'\b\w+\b', original_text.lower())
-        misspelled_words = list(spell.unknown(words))
+        # Perform a simple word-by-word correction.
+        # This logic is now consistent with the /save route.
+        words = original_text.split()
+        misspelled = spell.unknown(words)
         
-        # Create a list of corrections to display to the user
-        corrections = {word: spell.correction(word) for word in misspelled_words}
+        corrected_words = []
+        for word in words:
+            # Clean the word of punctuation for checking, but keep original for appending
+            clean_word = re.sub(r'[^\w\s]', '', word)
+            if clean_word.lower() in misspelled:
+                correction = spell.correction(clean_word.lower())
+                # Try to preserve original capitalization
+                if clean_word.istitle():
+                    corrected_words.append(correction.title())
+                else:
+                    corrected_words.append(correction)
+            else:
+                corrected_words.append(word)
+        
+        corrected_text = " ".join(corrected_words)
 
+        # Pass the original and corrected text to the template
         return render_template('index.html', 
                                original_text=original_text, 
-                               errors_found=True, 
-                               corrections=corrections)
+                               corrected_text=corrected_text)
 
-    return render_template('index.html', errors_found=False)
+    # For a GET request, just show the main page
+    return render_template('index.html')
 
 @app.route('/save', methods=['POST'])
 def save_essay():
@@ -69,9 +86,21 @@ def save_essay():
         return jsonify({'error': 'No text provided'}), 400
 
     # Perform a simple word-by-word correction.
-    # Note: This is a basic correction and might not be grammatically perfect.
-    words = re.findall(r'\b\w+\b', original_text)
-    corrected_words = [spell.correction(word) if word.lower() in spell.unknown(words) else word for word in words]
+    words = original_text.split()
+    misspelled = spell.unknown(words)
+    
+    corrected_words = []
+    for word in words:
+        clean_word = re.sub(r'[^\w\s]', '', word)
+        if clean_word.lower() in misspelled:
+            correction = spell.correction(clean_word.lower())
+            if clean_word.istitle():
+                corrected_words.append(correction.title())
+            else:
+                corrected_words.append(correction)
+        else:
+            corrected_words.append(word)
+            
     corrected_text = " ".join(corrected_words)
     
     try:
